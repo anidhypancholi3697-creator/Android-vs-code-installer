@@ -17,6 +17,7 @@ import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
+import java.io.File
 import java.util.ArrayDeque
 import kotlin.concurrent.thread
 
@@ -207,6 +208,14 @@ class MainActivity : Activity() {
         rootLayout.addView(bottomStatusBar)
 
         setContentView(rootLayout)
+
+        val crashFile = File(filesDir, "crash.txt")
+        if (crashFile.exists()) {
+            val crashContent = crashFile.readText()
+            crashFile.delete()
+            appendOutput("LAST CRASH: $crashContent")
+        }
+
         appendOutput("Codebox Installer ready.")
     }
 
