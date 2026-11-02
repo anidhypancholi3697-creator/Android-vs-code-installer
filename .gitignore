@@ -1,0 +1,7 @@
+build/
+.gradle/
+*.iml
+local.properties
+.idea/
+app/src/main/jniLibs/
+.aider*

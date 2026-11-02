@@ -1,0 +1,15 @@
+# Project rules (follow strictly)
+- Android app, package com.codebox.installer, Kotlin, Gradle KTS. minSdk 24, compileSdk 34, targetSdk 28, arm64-v8a only. License GPLv3.
+- Activities and services extend android.app.Activity / android.app.Service. NO androidx, NO appcompat, NO Material, NO new libraries. Build UI in code with plain android.widget views.
+- Free and open source only. No API keys stored in the app.
+- App is a small installer and engine: it installs a minimal Ubuntu 22.04 arm64 rootfs (ubuntu-base) under proot, with Aider pre-installed. NO VS Code, NO desktop, NO VNC, NO openbox, NO WebView, NO web server.
+- proot binaries are in nativeLibraryDir: libproot.so (proot), libproot-loader.so (loader), plus libtalloc.so etc.
+- To run proot set env: LD_LIBRARY_PATH=nativeLibraryDir, PROOT_LOADER=nativeLibraryDir/libproot-loader.so, PROOT_TMP_DIR=filesDir/tmp (create it).
+- proot command: libproot.so --link2symlink -0 -r ROOTFS -b /dev -b /proc -b /sys -w /root /usr/bin/env -i HOME=/root PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin TERM=xterm-256color LANG=C.UTF-8 DEBIAN_FRONTEND=noninteractive /bin/bash -c COMMAND
+- When starting any child process, REMOVE all env vars starting with ANDROID_ and also EXTERNAL_STORAGE, BOOTCLASSPATH, DEX2OATBOOTCLASSPATH, SYSTEMSERVERCLASSPATH, otherwise pip fails.
+- pkill and pgrep do NOT work in this proot. Never use them. Check running state with a TCP port check or a PID file.
+- Extract the rootfs with /system/bin/tar -xzf FILE -C ROOTFS (exclude dev nodes with --exclude=./dev/*). Download with HttpURLConnection. Rootfs url: https://cdimage.ubuntu.com/ubuntu-base/releases/22.04/release/ubuntu-base-22.04.5-base-arm64.tar.gz
+- Inside proot: write /etc/resolv.conf with 8.8.8.8 and 1.1.1.1; apt-get needs -o APT::Sandbox::User=root and -o Acquire::Retries=3; install ONLY: ca-certificates wget curl git python3 python3-pip nano; then pip3 install --no-cache-dir --ignore-installed aider-chat.
+- All long work runs on background threads; update UI with runOnUiThread. Every setup step must be safe to run again.
+- Install a global crash handler writing filesDir/crash.txt and show its content at next start.
+- Keep code small and simple. Change only what the task asks.
