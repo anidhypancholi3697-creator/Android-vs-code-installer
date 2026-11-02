@@ -42,6 +42,19 @@ class SetupManager(private val context: Context, private val runner: ProotRunner
         throw IOException("$name failed after $maxRetries attempts (exit code: $exitCode)")
     }
 
+    fun reset() {
+        runner.stopAll()
+        runner.rootfsDir.deleteRecursively()
+        tarFile.delete()
+        markerDownload.delete()
+        markerExtract.delete()
+        markerResolv.delete()
+        markerApt.delete()
+        markerAider.delete()
+        markerClean.delete()
+        context.filesDir.listFiles { _, name -> name.startsWith(".marker_") }?.forEach { it.delete() }
+    }
+
     fun isInstalled(): Boolean {
         val binLocal = File(runner.rootfsDir, "usr/local/bin/aider")
         val binUsr = File(runner.rootfsDir, "usr/bin/aider")
