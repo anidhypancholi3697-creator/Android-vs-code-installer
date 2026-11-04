@@ -9,6 +9,7 @@ import android.os.PowerManager
 import android.util.Log
 
 class EngineService : Service() {
+    private fun runOnUiThread(action: () -> Unit) { android.os.Handler(android.os.Looper.getMainLooper()).post { action() } }
 
     private var wakeLock: PowerManager.WakeLock? = null
     private var monitorThread: Thread? = null
