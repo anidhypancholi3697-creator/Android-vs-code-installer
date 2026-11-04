@@ -5,7 +5,7 @@ import java.io.File
 
 class VsCodeInstaller(private val context: Context, private val runner: ProotRunner) {
 
-    private val apt = "-o APT::Sandbox::User=root -o Acquire::Retries=3"
+    private val apt = "-o APT::Sandbox::User=root -o Acquire::Retries=3 -o DPkg::Lock::Timeout=900"
 
     private fun step(onLine: (String) -> Unit, title: String, cmd: String): Boolean {
         onLine("[*] $title")
