@@ -34,5 +34,6 @@
                 <data android:mimeType="*/*" />
             </intent-filter>
         </activity>
+    <activity android:name=".DesktopActivity" android:label="VS Code" android:exported="true" android:screenOrientation="landscape" android:configChanges="orientation|screenSize|keyboardHidden|keyboard|smallestScreenSize|screenLayout" android:windowSoftInputMode="adjustNothing" android:theme="@android:style/Theme.DeviceDefault.NoActionBar"><intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter></activity>
     </application>
 </manifest>
