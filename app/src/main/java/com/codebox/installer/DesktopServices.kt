@@ -8,7 +8,7 @@ import java.net.Socket
 class DesktopServices(private val context: Context, private val runner: ProotRunner) {
     private val env = "export DISPLAY=:1 HOME=/root; "
     private val codeCmd = "code --no-sandbox --disable-gpu --disable-dev-shm-usage " +
-        "--user-data-dir=/root/.vsc --password-store=basic /root >/tmp/code.log 2>&1"
+        "--disable-smooth-scrolling --user-data-dir=/root/.vsc --password-store=basic /root >/tmp/code.log 2>&1"
 
     fun isUp(): Boolean = try {
         Socket().use { it.connect(InetSocketAddress("127.0.0.1", 5901), 300) }
@@ -17,7 +17,30 @@ class DesktopServices(private val context: Context, private val runner: ProotRun
         false
     }
 
+    private fun writeSettings() {
+        val d = File(context.filesDir, "rootfs/root/.vsc/User")
+        d.mkdirs()
+        val f = File(d, "settings.json")
+        if (f.exists()) return
+        f.writeText("""{
+  "security.workspace.trust.enabled": false,
+  "chat.disableAIFeatures": true,
+  "workbench.reduceMotion": "on",
+  "workbench.startupEditor": "none",
+  "editor.smoothScrolling": false,
+  "editor.cursorSmoothCaretAnimation": "off",
+  "editor.minimap.enabled": false,
+  "workbench.list.smoothScrolling": false,
+  "terminal.integrated.smoothScrolling": false,
+  "telemetry.telemetryLevel": "off",
+  "update.mode": "none",
+  "extensions.autoUpdate": false
+}
+""")
+    }
+
     private fun writeRc() {
+        writeSettings()
         val dir = File(context.filesDir, "rootfs/root/.config/openbox")
         dir.mkdirs()
         File(dir, "rc.xml").writeText(

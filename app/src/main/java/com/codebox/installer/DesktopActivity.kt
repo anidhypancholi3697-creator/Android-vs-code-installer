@@ -48,8 +48,8 @@ class DesktopActivity : Activity() {
         val dm = resources.displayMetrics
         val big = maxOf(dm.widthPixels, dm.heightPixels)
         val small = minOf(dm.widthPixels, dm.heightPixels)
-        val dw = 1280
-        val dh = ((dw.toDouble() * (small - 52 * dm.density) / big).toInt().coerceIn(480, 1000)) / 2 * 2
+        val dw = minOf(big, 1600) / 2 * 2
+        val dh = ((dw.toDouble() * (small - 52 * dm.density) / big).toInt().coerceIn(480, 1200)) / 2 * 2
 
         val root = LinearLayout(this)
         root.orientation = LinearLayout.VERTICAL
@@ -95,6 +95,7 @@ class DesktopActivity : Activity() {
         window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_FULLSCREEN or
             View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
 
+        pinShortcut()
         Thread {
             if (!File(filesDir, "rootfs/usr/share/code/bin/code").exists()) {
                 runOnUiThread { status.text = "VS Code install nahi hai.\nPehle .deb file: Open with → Codebox Installer." }
@@ -110,6 +111,30 @@ class DesktopActivity : Activity() {
                 }
             }
         }.start()
+    }
+
+    private fun pinShortcut() {
+        try {
+            if (android.os.Build.VERSION.SDK_INT < 26) return
+            val marker = File(filesDir, "vscode_shortcut_done")
+            if (marker.exists()) return
+            val f = listOf("rootfs/usr/share/pixmaps/vscode.png",
+                "rootfs/usr/share/code/resources/app/resources/linux/code.png")
+                .map { File(filesDir, it) }.firstOrNull { it.exists() } ?: return
+            val sm = getSystemService(android.content.pm.ShortcutManager::class.java)
+            if (!sm.isRequestPinShortcutSupported) return
+            val bmp = android.graphics.BitmapFactory.decodeFile(f.path) ?: return
+            val small = android.graphics.Bitmap.createScaledBitmap(bmp, 192, 192, true)
+            val info = android.content.pm.ShortcutInfo.Builder(this, "vscode")
+                .setShortLabel("VS Code")
+                .setIcon(android.graphics.drawable.Icon.createWithBitmap(small))
+                .setIntent(android.content.Intent(this, DesktopActivity::class.java)
+                    .setAction(android.content.Intent.ACTION_MAIN))
+                .build()
+            sm.requestPinShortcut(info, null)
+            marker.createNewFile()
+        } catch (e: Exception) {
+        }
     }
 
     private fun stopAll() {

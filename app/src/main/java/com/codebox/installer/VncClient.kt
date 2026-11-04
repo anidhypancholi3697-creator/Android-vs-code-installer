@@ -75,7 +75,7 @@ class VncClient(private val onFrame: () -> Unit, private val onClosed: (String) 
             pf[9] = 255.toByte(); pf[11] = 255.toByte(); pf[13] = 255.toByte()
             pf[14] = 16; pf[15] = 8; pf[16] = 0
             send(pf)
-            send(byteArrayOf(2, 0, 0, 1, 0, 0, 0, 0))
+            send(byteArrayOf(2, 0, 0, 2, 0, 0, 0, 0, -1, -1, -1, 17))
             send(req(0, w, h))
 
             var buf = ByteArray(0)
@@ -91,6 +91,7 @@ class VncClient(private val onFrame: () -> Unit, private val onClosed: (String) 
                             val rw = inp.readUnsignedShort()
                             val rh = inp.readUnsignedShort()
                             val enc = inp.readInt()
+                            if (enc == -239) { inp.readFully(ByteArray(rw * rh * 4 + ((rw + 7) / 8) * rh)); continue }
                             if (enc != 0) throw Exception("encoding $enc")
                             val len = rw * rh * 4
                             if (buf.size < len) { buf = ByteArray(len); ints = IntArray(rw * rh) }
