@@ -3,74 +3,47 @@ package com.codebox.installer
 import android.content.Context
 import java.io.File
 
-class VsCodeInstaller(
-    private val context: Context,
-    private val runner: ProotRunner
-) {
+class VsCodeInstaller(private val context: Context, private val runner: ProotRunner) {
+
+    private val apt = "-o APT::Sandbox::User=root -o Acquire::Retries=3"
+
+    private fun step(onLine: (String) -> Unit, title: String, cmd: String): Boolean {
+        onLine("[*] $title")
+        val code = runner.run(cmd, onLine)
+        if (code != 0) {
+            onLine("[!] Failed (exit code $code): $title")
+            return false
+        }
+        return true
+    }
 
     fun install(debPath: String, onLine: (String) -> Unit): Boolean {
-        // Step 1: Check CPU architecture
-        onLine("Checking architecture of $debPath...")
-        val archResult = runner.run("dpkg-deb -f $debPath Architecture")
-        if (archResult.code != 0) {
-            onLine("Failed to check architecture.")
+        onLine("[*] Checking the CPU type of the file")
+        val out = StringBuilder()
+        val c = runner.run("dpkg-deb -f $debPath Architecture") { line -> out.append(line).append(' ') }
+        val arch = out.toString().trim()
+        if (c != 0 || arch.isEmpty()) {
+            onLine("[!] Could not read this file. Is it a valid .deb?")
             return false
         }
-        val arch = archResult.output.trim()
-        if (arch != "arm64") {
-            onLine("This file is for another CPU. Download the ARM64 deb from code.visualstudio.com Other downloads.")
-            return false
-        }
-        onLine("Architecture is arm64.")
-
-        // Step 2: apt-get update
-        onLine("Updating package lists...")
-        val updateResult = runner.run("apt-get update -o APT::Sandbox::User=root -o Acquire::Retries=3")
-        if (updateResult.code != 0) {
-            onLine("apt-get update failed.")
+        onLine("    File CPU: $arch")
+        if (!arch.startsWith("arm64")) {
+            onLine("[!] This file is for another CPU ($arch). Download the ARM64 .deb from code.visualstudio.com (Other downloads).")
             return false
         }
 
-        // Step 3: Install dependencies
-        onLine("Installing dependencies (tigervnc-standalone-server, openbox, xterm, unclutter)...")
-        val depResult = runner.run("apt-get install -y tigervnc-standalone-server openbox xterm unclutter -o APT::Sandbox::User=root -o Acquire::Retries=3")
-        if (depResult.code != 0) {
-            onLine("Failed to install dependencies.")
-            return false
-        }
+        if (!step(onLine, "apt-get update", "apt-get $apt update")) return false
+        if (!step(onLine, "Installing desktop packages",
+                "apt-get $apt install -y tigervnc-standalone-server openbox xterm unclutter")) return false
+        if (!step(onLine, "Preparing VS Code settings",
+                "echo 'code code/add-microsoft-repo boolean false' | debconf-set-selections")) return false
+        if (!step(onLine, "Installing VS Code (this takes a while)",
+                "apt-get $apt install -y $debPath")) return false
+        if (!step(onLine, "Checking VS Code", "test -x /usr/bin/code")) return false
 
-        // Step 4: Set debconf selections
-        onLine("Setting debconf selections...")
-        val debconfResult = runner.run("echo 'code code/add-microsoft-repo boolean false' | debconf-set-selections")
-        if (debconfResult.code != 0) {
-            onLine("Failed to set debconf selections.")
-            return false
-        }
-
-        // Step 5: Install VS Code deb
-        onLine("Installing VS Code from $debPath...")
-        val installResult = runner.run("apt-get install -y $debPath -o APT::Sandbox::User=root -o Acquire::Retries=3")
-        if (installResult.code != 0) {
-            onLine("Failed to install VS Code.")
-            return false
-        }
-
-        // Step 6: Verify, cleanup, and mark as installed
-        onLine("Verifying installation...")
-        val checkResult = runner.run("test -f /usr/bin/code")
-        if (checkResult.code != 0) {
-            onLine("VS Code binary not found at /usr/bin/code.")
-            return false
-        }
-
-        onLine("Cleaning up...")
-        runner.run("rm -f $debPath")
-        runner.run("apt-get clean")
-
-        val markerFile = File(context.filesDir, "vscode_installed")
-        markerFile.writeText("installed")
-
-        onLine("VS Code installed OK")
+        runner.run("rm -f $debPath; apt-get clean", onLine)
+        File(context.filesDir, "vscode_installed").writeText("ok")
+        onLine("[*] VS Code installed OK")
         return true
     }
 }
