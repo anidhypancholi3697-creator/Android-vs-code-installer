@@ -16,7 +16,13 @@ import android.view.inputmethod.InputMethodManager
 import kotlin.math.hypot
 
 class ScreenView(context: Context, private val vnc: VncClient) : View(context) {
-    private val paint = Paint(Paint.FILTER_BITMAP_FLAG)
+    private val paint = Paint(Paint.FILTER_BITMAP_FLAG).apply {
+        colorFilter = android.graphics.ColorMatrixColorFilter(floatArrayOf(
+            1.3f, 0f, 0f, 0f, 18f,
+            0f, 1.3f, 0f, 0f, 18f,
+            0f, 0f, 1.3f, 0f, 18f,
+            0f, 0f, 0f, 1f, 0f))
+    }
     private var ox = 0f
     private var oy = 0f
     private var scale = 1f

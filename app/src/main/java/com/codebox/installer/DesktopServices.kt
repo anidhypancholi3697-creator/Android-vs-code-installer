@@ -8,7 +8,9 @@ import java.net.Socket
 class DesktopServices(private val context: Context, private val runner: ProotRunner) {
     private val env = "export DISPLAY=:1 HOME=/root; "
     private val codeCmd = "code --no-sandbox --disable-gpu --disable-dev-shm-usage " +
-        "--disable-smooth-scrolling --user-data-dir=/root/.vsc --password-store=basic /root >/tmp/code.log 2>&1"
+        "--disable-ipv6 --no-proxy-server --disable-smooth-scrolling --renderer-process-limit=2 " +
+        "--disable-site-isolation-trials --disable-background-timer-throttling --disable-renderer-backgrounding " +
+        "--js-flags=--max-old-space-size=512 --user-data-dir=/root/.vsc --password-store=basic /root/work >/tmp/code.log 2>&1"
 
     fun isUp(): Boolean = try {
         Socket().use { it.connect(InetSocketAddress("127.0.0.1", 5901), 300) }
@@ -18,11 +20,14 @@ class DesktopServices(private val context: Context, private val runner: ProotRun
     }
 
     private fun writeSettings() {
+        File(context.filesDir, "rootfs/root/work").mkdirs()
         val d = File(context.filesDir, "rootfs/root/.vsc/User")
         d.mkdirs()
         val f = File(d, "settings.json")
         if (f.exists()) return
         f.writeText("""{
+  "workbench.colorTheme": "Default Dark Modern",
+  "editor.fontWeight": "500",
   "security.workspace.trust.enabled": false,
   "chat.disableAIFeatures": true,
   "workbench.reduceMotion": "on",
@@ -32,6 +37,8 @@ class DesktopServices(private val context: Context, private val runner: ProotRun
   "editor.minimap.enabled": false,
   "workbench.list.smoothScrolling": false,
   "terminal.integrated.smoothScrolling": false,
+  "terminal.integrated.gpuAcceleration": "off",
+  "http.proxySupport": "off",
   "telemetry.telemetryLevel": "off",
   "update.mode": "none",
   "extensions.autoUpdate": false
@@ -47,8 +54,7 @@ class DesktopServices(private val context: Context, private val runner: ProotRun
             """<?xml version="1.0"?>
 <openbox_config xmlns="http://openbox.org/3.4/rc">
 <applications>
-<application class="Code"><decor>no</decor><maximized>yes</maximized></application>
-<application class="code"><decor>no</decor><maximized>yes</maximized></application>
+<application class="*"><decor>no</decor><maximized>yes</maximized></application>
 </applications>
 </openbox_config>
 """
@@ -64,7 +70,8 @@ class DesktopServices(private val context: Context, private val runner: ProotRun
         val sh = env +
             "rm -f /tmp/.X1-lock /tmp/.X11-unix/X1; " +
             "Xtigervnc :1 -geometry ${w}x${h} -depth 24 -SecurityTypes None -localhost -rfbport 5901 -AlwaysShared >/tmp/xvnc.log 2>&1 & " +
-            "sleep 2; openbox >/tmp/openbox.log 2>&1 & sleep 1; exec " + codeCmd
+            "for i in \$(seq 1 60); do [ -S /tmp/.X11-unix/X1 ] && break; sleep 0.5; done; " +
+            "(openbox >/tmp/openbox.log 2>&1 || (sleep 2; openbox >>/tmp/openbox.log 2>&1)) & sleep 2; mkdir -p /root/work; exec " + codeCmd
         runner.startBackground(sh)
         for (i in 0 until 60) {
             if (isUp()) return true

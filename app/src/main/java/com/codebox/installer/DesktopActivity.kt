@@ -31,7 +31,7 @@ class DesktopActivity : Activity() {
             runOnUiThread {
                 if (::status.isInitialized) {
                     status.visibility = View.VISIBLE
-                    status.text = "Screen band: $msg\nCLOSE dabao, phir VS Code icon dobara kholo."
+                    status.text = "Screen band: $msg\nSTOP dabao, phir VS Code icon dobara kholo."
                 }
             }
         }
@@ -49,22 +49,20 @@ class DesktopActivity : Activity() {
         val big = maxOf(dm.widthPixels, dm.heightPixels)
         val small = minOf(dm.widthPixels, dm.heightPixels)
         val dw = minOf(big, 1600) / 2 * 2
-        val dh = ((dw.toDouble() * (small - 52 * dm.density) / big).toInt().coerceIn(480, 1200)) / 2 * 2
-
-        val root = LinearLayout(this)
-        root.orientation = LinearLayout.VERTICAL
-        root.setBackgroundColor(Color.BLACK)
+        val dh = ((dw.toDouble() * small.toDouble() / big).toInt().coerceIn(480, 1200)) / 2 * 2
 
         val frame = FrameLayout(this)
+        frame.setBackgroundColor(Color.BLACK)
         screen = ScreenView(this, vnc)
         status = TextView(this)
         status.text = "VS Code start ho raha hai… (pehli baar 30-60 sec)"
         status.setTextColor(Color.GREEN)
         status.gravity = Gravity.CENTER
         status.textSize = 16f
-        frame.addView(screen, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
-        frame.addView(status, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
-        root.addView(frame, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
+        val mp = ViewGroup.LayoutParams.MATCH_PARENT
+        val wc = ViewGroup.LayoutParams.WRAP_CONTENT
+        frame.addView(screen, FrameLayout.LayoutParams(mp, mp))
+        frame.addView(status, FrameLayout.LayoutParams(mp, mp))
 
         val row = LinearLayout(this)
         row.orientation = LinearLayout.HORIZONTAL
@@ -88,9 +86,14 @@ class DesktopActivity : Activity() {
         row.addView(btn("STOP") { stopAll() })
         val hs = HorizontalScrollView(this)
         hs.addView(row)
-        root.addView(hs, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        hs.visibility = View.GONE
+        frame.addView(hs, FrameLayout.LayoutParams(mp, wc, Gravity.BOTTOM))
+        val tgl = btn("☰") { hs.visibility = if (hs.visibility == View.VISIBLE) View.GONE else View.VISIBLE }
+        tgl.alpha = 0.35f
+        tgl.textSize = 10f
+        frame.addView(tgl, FrameLayout.LayoutParams(wc, wc, Gravity.BOTTOM or Gravity.END))
 
-        setContentView(root)
+        setContentView(frame)
         @Suppress("DEPRECATION")
         window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_FULLSCREEN or
             View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
