@@ -118,6 +118,7 @@ class ScreenView(context: Context, private val vnc: VncClient) : View(context) {
                     ptr(0, e.x, e.y)
                 }
                 state = 3
+                postDelayed({ vnc.refresh() }, 250)
             }
             MotionEvent.ACTION_CANCEL -> {
                 removeCallbacks(longPress)

@@ -12,6 +12,12 @@ class VncClient(private val onFrame: () -> Unit, private val onClosed: (String) 
     var onCut: ((String) -> Unit)? = null
     @Volatile var bitmap: Bitmap? = null
     @Volatile private var running = false
+    @Volatile private var fw = 0
+    @Volatile private var fh = 0
+
+    fun refresh() {
+        if (fw > 0) send(req(0, fw, fh))
+    }
     private var socket: Socket? = null
     private var out: DataOutputStream? = null
     private val sender = Executors.newSingleThreadExecutor()
@@ -69,6 +75,8 @@ class VncClient(private val onFrame: () -> Unit, private val onClosed: (String) 
 
             val bm = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
             bitmap = bm
+            fw = w
+            fh = h
             out = o
 
             val pf = ByteArray(20)
@@ -78,6 +86,13 @@ class VncClient(private val onFrame: () -> Unit, private val onClosed: (String) 
             send(pf)
             send(byteArrayOf(2, 0, 0, 2, 0, 0, 0, 0, -1, -1, -1, 17))
             send(req(0, w, h))
+            Thread {
+                try {
+                    Thread.sleep(1500); refresh()
+                    Thread.sleep(2500); refresh()
+                } catch (e: Exception) {
+                }
+            }.start()
 
             var buf = ByteArray(0)
             var ints = IntArray(0)
