@@ -6,7 +6,7 @@ import java.net.InetSocketAddress
 import java.net.Socket
 
 class DesktopServices(private val context: Context, private val runner: ProotRunner) {
-    private val env = "export DISPLAY=:1 HOME=/root; "
+    private val env = "export DISPLAY=:1 HOME=/root BROWSER=/usr/local/bin/xdg-open; "
     private val codeCmd = "code --no-sandbox --disable-gpu --disable-dev-shm-usage " +
         "--disable-ipv6 --no-proxy-server --disable-smooth-scrolling --renderer-process-limit=2 " +
         "--disable-site-isolation-trials --disable-background-timer-throttling --disable-renderer-backgrounding " +
@@ -61,8 +61,16 @@ class DesktopServices(private val context: Context, private val runner: ProotRun
         )
     }
 
+    private fun writeShim() {
+        val f = File(context.filesDir, "rootfs/usr/local/bin/xdg-open")
+        f.parentFile?.mkdirs()
+        f.writeText("#!/bin/sh\necho \"\$1\" > /tmp/open_url.txt\n")
+        f.setExecutable(true, false)
+    }
+
     fun start(w: Int, h: Int): Boolean {
         writeRc()
+        writeShim()
         if (isUp()) {
             runner.startBackground(env + "exec " + codeCmd)
             return true
@@ -71,7 +79,7 @@ class DesktopServices(private val context: Context, private val runner: ProotRun
             "rm -f /tmp/.X1-lock /tmp/.X11-unix/X1; " +
             "Xtigervnc :1 -geometry ${w}x${h} -depth 24 -SecurityTypes None -localhost -rfbport 5901 -AlwaysShared >/tmp/xvnc.log 2>&1 & " +
             "for i in \$(seq 1 60); do [ -S /tmp/.X11-unix/X1 ] && break; sleep 0.5; done; " +
-            "(openbox >/tmp/openbox.log 2>&1 || (sleep 2; openbox >>/tmp/openbox.log 2>&1)) & sleep 2; mkdir -p /root/work; exec " + codeCmd
+            "(openbox >/tmp/openbox.log 2>&1 || (sleep 2; openbox >>/tmp/openbox.log 2>&1)) & sleep 2; mkdir -p /root/work; (vncconfig -nowin >/tmp/vncconfig.log 2>&1 &); exec " + codeCmd
         runner.startBackground(sh)
         for (i in 0 until 60) {
             if (isUp()) return true

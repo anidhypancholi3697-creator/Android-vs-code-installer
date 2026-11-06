@@ -34,7 +34,7 @@ class VsCodeInstaller(private val context: Context, private val runner: ProotRun
 
         if (!step(onLine, "apt-get update", "apt-get $apt update")) return false
         if (!step(onLine, "Installing desktop packages",
-                "apt-get $apt install -y tigervnc-standalone-server openbox xterm unclutter")) return false
+                "apt-get $apt install -y tigervnc-standalone-server openbox xterm unclutter git")) return false
         if (!step(onLine, "Preparing VS Code settings",
                 "echo 'code code/add-microsoft-repo boolean false' | debconf-set-selections")) return false
         if (!step(onLine, "Installing VS Code (this takes a while)",

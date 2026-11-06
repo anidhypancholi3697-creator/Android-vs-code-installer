@@ -9,6 +9,7 @@ import java.util.concurrent.Executors
 
 class VncClient(private val onFrame: () -> Unit, private val onClosed: (String) -> Unit) {
     val lock = Any()
+    var onCut: ((String) -> Unit)? = null
     @Volatile var bitmap: Bitmap? = null
     @Volatile private var running = false
     private var socket: Socket? = null
@@ -118,7 +119,9 @@ class VncClient(private val onFrame: () -> Unit, private val onClosed: (String) 
                     3 -> {
                         inp.readFully(ByteArray(3))
                         val l = inp.readInt()
-                        inp.readFully(ByteArray(l))
+                        val tb = ByteArray(l)
+                        inp.readFully(tb)
+                        onCut?.invoke(String(tb, Charsets.ISO_8859_1))
                     }
                     else -> throw Exception("unknown message")
                 }

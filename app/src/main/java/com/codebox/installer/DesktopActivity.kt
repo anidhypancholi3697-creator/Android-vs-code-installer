@@ -18,6 +18,7 @@ class DesktopActivity : Activity() {
     private lateinit var status: TextView
     private lateinit var ctrlBtn: Button
     private var kbOn = false
+    @Volatile private var alive = true
     private val runner by lazy { ProotRunner(this) }
 
     private val vnc = VncClient(
@@ -103,6 +104,13 @@ class DesktopActivity : Activity() {
         window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_FULLSCREEN or
             View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
 
+        vnc.onCut = { t ->
+            runOnUiThread {
+                val cm = getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                cm.setPrimaryClip(android.content.ClipData.newPlainText("vscode", t))
+            }
+        }
+        watchLinks()
         pinShortcut()
         Thread {
             if (!File(filesDir, "rootfs/usr/share/code/bin/code").exists()) {
@@ -117,6 +125,30 @@ class DesktopActivity : Activity() {
                 } else {
                     status.text = "Desktop start nahi hua.\nMain app command box me:\ntail -5 /tmp/xvnc.log /tmp/code.log"
                 }
+            }
+        }.start()
+    }
+
+    private fun watchLinks() {
+        Thread {
+            val f = File(filesDir, "rootfs/tmp/open_url.txt")
+            while (alive) {
+                try {
+                    if (f.exists()) {
+                        val u = f.readText().trim()
+                        f.delete()
+                        if (u.startsWith("http://") || u.startsWith("https://")) {
+                            runOnUiThread {
+                                try {
+                                    startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(u)))
+                                } catch (e: Exception) {
+                                }
+                            }
+                        }
+                    }
+                } catch (e: Exception) {
+                }
+                Thread.sleep(1000)
             }
         }.start()
     }
@@ -159,6 +191,7 @@ class DesktopActivity : Activity() {
     }
 
     override fun onDestroy() {
+        alive = false
         vnc.close()
         super.onDestroy()
     }
