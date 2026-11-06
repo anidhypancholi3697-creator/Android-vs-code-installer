@@ -72,6 +72,11 @@ class DesktopActivity : Activity() {
         })
         row.addView(btn("ESC") { screen.sendKey(0xff1b) })
         row.addView(btn("TAB") { screen.sendKey(0xff09) })
+        row.addView(btn("PASTE") {
+            val cm = getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+            val t = cm.primaryClip?.getItemAt(0)?.coerceToText(this)?.toString() ?: ""
+            screen.pasteText(t)
+        })
         ctrlBtn = btn("CTRL") {
             screen.ctrl = !screen.ctrl
             ctrlBtn.text = if (screen.ctrl) "CTRL ON" else "CTRL"

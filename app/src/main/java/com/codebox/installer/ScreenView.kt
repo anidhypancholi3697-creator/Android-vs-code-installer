@@ -18,9 +18,9 @@ import kotlin.math.hypot
 class ScreenView(context: Context, private val vnc: VncClient) : View(context) {
     private val paint = Paint(Paint.FILTER_BITMAP_FLAG).apply {
         colorFilter = android.graphics.ColorMatrixColorFilter(floatArrayOf(
-            1.3f, 0f, 0f, 0f, 18f,
-            0f, 1.3f, 0f, 0f, 18f,
-            0f, 0f, 1.3f, 0f, 18f,
+            1.25f, 0f, 0f, 0f, 0f,
+            0f, 1.25f, 0f, 0f, 0f,
+            0f, 0f, 1.25f, 0f, 0f,
             0f, 0f, 0f, 1f, 0f))
     }
     private var ox = 0f
@@ -150,6 +150,10 @@ class ScreenView(context: Context, private val vnc: VncClient) : View(context) {
             else -> 0x01000000 or code
         }
         sendKey(sym)
+    }
+
+    fun pasteText(t: String) {
+        for (ch in t) if (ch != '\r') sendChar(ch)
     }
 
     private fun keycodeToSym(k: Int): Int = when (k) {
